@@ -61,7 +61,7 @@ const sendErrorProd = (err, res) => {
     });
   } else {
     // Programming or unknown errors: don't leak error details
-    console.error('ERROR 💥', err);
+    console.error('ERROR', err);
     res.status(500).json({
       success: false,
       status: 'error',
