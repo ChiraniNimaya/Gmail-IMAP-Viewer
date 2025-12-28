@@ -27,9 +27,9 @@ const sequelize = new Sequelize(
 const testConnection = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✓ Database connection established successfully.');
+    console.log('Database connection established successfully.');
   } catch (error) {
-    console.error('✗ Unable to connect to the database:', error.message);
+    console.error('Unable to connect to the database:', error.message);
     process.exit(1);
   }
 };
@@ -38,9 +38,9 @@ const testConnection = async () => {
 const syncDatabase = async (force = false) => {
   try {
     await sequelize.sync({ force, alter: !force });
-    console.log('✓ Database synchronized successfully.');
+    console.log('Database synchronized successfully.');
   } catch (error) {
-    console.error('✗ Error synchronizing database:', error.message);
+    console.error('Error synchronizing database:', error.message);
     throw error;
   }
 };
