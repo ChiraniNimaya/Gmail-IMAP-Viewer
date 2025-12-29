@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import Login from './components/Auth/Login';
 import EmailList from './components/Email/EmailList';
 import EmailDetail from './components/Email/EmailDetail';
+import './App.css';
 
 function AppContent() {
   const { user, loading, isAuthenticated, logout } = useAuth();
