@@ -8,35 +8,59 @@ class ImapService {
     this.imap = null;
   }
 
-  // Connect to Gmail IMAP
+  // Generate XOAUTH2 token string
+  generateXOAuth2Token(user, accessToken) {
+    const authString = [
+      `user=${user}`,
+      `auth=Bearer ${accessToken}`,
+      '',
+      ''
+    ].join('\x01');
+    return Buffer.from(authString).toString('base64');
+  }
+
+  // Connect to Gmail IMAP with OAuth2
   connect() {
     return new Promise((resolve, reject) => {
+      const xoauth2Token = this.generateXOAuth2Token(
+        this.user.email,
+        this.user.accessToken
+      );
+
       this.imap = new Imap({
         user: this.user.email,
-        password: this.user.accessToken,
+        xoauth2: xoauth2Token,
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
-        tlsOptions: { rejectUnauthorized: false },
+        tlsOptions: { 
+          rejectUnauthorized: false,
+          servername: 'imap.gmail.com'
+        },
         authTimeout: 10000,
-        xoauth2: this.user.accessToken
+        connTimeout: 10000,
+        debug: console.log // Enable debug logging
       });
 
       this.imap.once('ready', () => {
-        console.log('IMAP connection ready');
+        console.log('✓ IMAP connection ready');
         resolve();
       });
 
       this.imap.once('error', (err) => {
-        console.error('IMAP connection error:', err);
-        reject(err);
+        console.error('✗ IMAP connection error:', err);
+        reject(new Error(`IMAP connection failed: ${err.message}`));
       });
 
       this.imap.once('end', () => {
         console.log('IMAP connection ended');
       });
 
-      this.imap.connect();
+      try {
+        this.imap.connect();
+      } catch (error) {
+        reject(new Error(`Failed to initiate IMAP connection: ${error.message}`));
+      }
     });
   }
 
@@ -45,7 +69,7 @@ class ImapService {
     return new Promise((resolve, reject) => {
       this.imap.openBox(mailbox, true, (err, box) => {
         if (err) {
-          reject(err);
+          reject(new Error(`Failed to open mailbox: ${err.message}`));
           return;
         }
 
@@ -56,33 +80,43 @@ class ImapService {
           return;
         }
 
-        // Calculate range
+        // Calculate range (fetch most recent emails)
         const end = Math.max(1, total - offset);
         const start = Math.max(1, end - limit + 1);
 
+        console.log(`Fetching emails ${start}:${end} from ${total} total`);
+
         const fetch = this.imap.seq.fetch(`${start}:${end}`, {
-          bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE MESSAGE-ID)', 'TEXT'],
-          struct: true
+          bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE MESSAGE-ID)', 'TEXT', ''],
+          struct: true,
+          markSeen: false
         });
 
         const emails = [];
+        let processed = 0;
+        const expectedCount = end - start + 1;
 
         fetch.on('message', (msg, seqno) => {
           const emailData = {
             seqno: seqno,
             attributes: null,
             headers: null,
-            body: null
+            body: '',
+            fullBody: ''
           };
 
           msg.on('body', (stream, info) => {
             let buffer = '';
+            
             stream.on('data', (chunk) => {
               buffer += chunk.toString('utf8');
             });
 
             stream.once('end', () => {
-              if (info.which.includes('HEADER')) {
+              if (info.which === '') {
+                // Full message body
+                emailData.fullBody = buffer;
+              } else if (info.which.includes('HEADER')) {
                 emailData.headers = Imap.parseHeader(buffer);
               } else {
                 emailData.body = buffer;
@@ -96,19 +130,21 @@ class ImapService {
 
           msg.once('end', () => {
             emails.push(emailData);
+            processed++;
           });
         });
 
         fetch.once('error', (err) => {
-          reject(err);
+          reject(new Error(`Fetch error: ${err.message}`));
         });
 
         fetch.once('end', async () => {
+          console.log(`Fetched ${processed} emails`);
           try {
             const parsedEmails = await this.parseEmails(emails);
             resolve({ emails: parsedEmails, total });
           } catch (error) {
-            reject(error);
+            reject(new Error(`Parse error: ${error.message}`));
           }
         });
       });
@@ -123,27 +159,39 @@ class ImapService {
       try {
         const headers = email.headers || {};
         
-        // Parse body if available
+        // Parse full body if available
         let bodyPreview = '';
         let bodyText = '';
         let bodyHtml = '';
 
-        if (email.body) {
+        if (email.fullBody) {
           try {
-            const parsed = await simpleParser(email.body);
-            bodyText = parsed.text || '';
-            bodyHtml = parsed.html || '';
-            bodyPreview = (bodyText || '').substring(0, 200);
+            const parsedMail = await simpleParser(email.fullBody);
+            bodyText = parsedMail.text || '';
+            bodyHtml = parsedMail.html || parsedMail.textAsHtml || '';
+            bodyPreview = bodyText.substring(0, 200).replace(/\n/g, ' ').trim();
           } catch (parseError) {
-            console.error('Error parsing email body:', parseError);
+            console.error('Error parsing email body:', parseError.message);
+            bodyPreview = email.body ? email.body.substring(0, 200) : '';
           }
         }
 
+        // Extract sender information
         const fromAddress = headers.from ? headers.from[0] : '';
-        const fromMatch = fromAddress.match(/<(.+?)>/) || fromAddress.match(/(.+)/);
-        const fromEmail = fromMatch ? fromMatch[1] : fromAddress;
-        const fromNameMatch = fromAddress.match(/^"?(.+?)"?\s*</);
-        const fromName = fromNameMatch ? fromNameMatch[1] : fromEmail;
+        const fromMatch = fromAddress.match(/<(.+?)>/) || [null, fromAddress];
+        const fromEmail = fromMatch[1] || fromAddress;
+        const fromNameMatch = fromAddress.match(/^"?([^"<]+)"?\s*</);
+        const fromName = fromNameMatch ? fromNameMatch[1].trim() : fromEmail;
+
+        // Get received date
+        let receivedDate = new Date();
+        if (headers.date && headers.date[0]) {
+          try {
+            receivedDate = new Date(headers.date[0]);
+          } catch (e) {
+            console.error('Error parsing date:', e.message);
+          }
+        }
 
         parsed.push({
           messageId: headers['message-id'] ? headers['message-id'][0] : `${Date.now()}-${email.seqno}`,
@@ -153,7 +201,7 @@ class ImapService {
           toAddress: headers.to ? headers.to.join(', ') : '',
           ccAddress: headers.cc ? headers.cc.join(', ') : '',
           bccAddress: headers.bcc ? headers.bcc.join(', ') : '',
-          receivedDate: headers.date ? new Date(headers.date[0]) : new Date(),
+          receivedDate: receivedDate,
           bodyPreview: bodyPreview,
           bodyText: bodyText,
           bodyHtml: bodyHtml,
@@ -165,7 +213,7 @@ class ImapService {
           uid: email.attributes?.uid || null
         });
       } catch (error) {
-        console.error('Error parsing individual email:', error);
+        console.error('Error parsing individual email:', error.message);
       }
     }
 
@@ -181,10 +229,6 @@ class ImapService {
         return part.some(checkStruct);
       }
       if (part.disposition && part.disposition.type.toUpperCase() === 'ATTACHMENT') {
-        return true;
-      }
-      if (part.subtype && part.subtype.toUpperCase() !== 'PLAIN' && 
-          part.subtype.toUpperCase() !== 'HTML') {
         return true;
       }
       return false;
@@ -215,13 +259,21 @@ class ImapService {
     return new Promise((resolve, reject) => {
       this.imap.openBox('INBOX', true, (err, box) => {
         if (err) {
-          reject(err);
+          reject(new Error(`Failed to open mailbox: ${err.message}`));
           return;
         }
 
-        this.imap.search(criteria, (err, results) => {
+        // Convert search criteria to IMAP format
+        let searchCriteria = ['ALL'];
+        if (typeof criteria === 'string') {
+          searchCriteria = [['OR', ['SUBJECT', criteria], ['FROM', criteria]]];
+        } else {
+          searchCriteria = criteria;
+        }
+
+        this.imap.search(searchCriteria, (err, results) => {
           if (err) {
-            reject(err);
+            reject(new Error(`Search error: ${err.message}`));
             return;
           }
 
@@ -233,8 +285,9 @@ class ImapService {
           const resultLimit = results.slice(-limit);
           
           const fetch = this.imap.fetch(resultLimit, {
-            bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE MESSAGE-ID)', 'TEXT'],
-            struct: true
+            bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE MESSAGE-ID)', 'TEXT', ''],
+            struct: true,
+            markSeen: false
           });
 
           const emails = [];
@@ -244,7 +297,8 @@ class ImapService {
               seqno: seqno,
               attributes: null,
               headers: null,
-              body: null
+              body: '',
+              fullBody: ''
             };
 
             msg.on('body', (stream, info) => {
@@ -254,7 +308,9 @@ class ImapService {
               });
 
               stream.once('end', () => {
-                if (info.which.includes('HEADER')) {
+                if (info.which === '') {
+                  emailData.fullBody = buffer;
+                } else if (info.which.includes('HEADER')) {
                   emailData.headers = Imap.parseHeader(buffer);
                 } else {
                   emailData.body = buffer;
@@ -272,7 +328,7 @@ class ImapService {
           });
 
           fetch.once('error', (err) => {
-            reject(err);
+            reject(new Error(`Fetch error: ${err.message}`));
           });
 
           fetch.once('end', async () => {
@@ -280,7 +336,7 @@ class ImapService {
               const parsedEmails = await this.parseEmails(emails);
               resolve({ emails: parsedEmails, total: results.length });
             } catch (error) {
-              reject(error);
+              reject(new Error(`Parse error: ${error.message}`));
             }
           });
         });
@@ -291,7 +347,11 @@ class ImapService {
   // Close connection
   disconnect() {
     if (this.imap) {
-      this.imap.end();
+      try {
+        this.imap.end();
+      } catch (error) {
+        console.error('Error disconnecting IMAP:', error.message);
+      }
     }
   }
 }
