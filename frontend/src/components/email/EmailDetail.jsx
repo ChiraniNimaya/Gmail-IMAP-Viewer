@@ -4,7 +4,6 @@ import { emailAPI } from '../../services/api';
 export default function EmailDetail({ email, onClose, onEmailUpdate }) {
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showHtml, setShowHtml] = useState(true);
 
   useEffect(() => {
     if (email) {
@@ -41,6 +40,45 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         alert('Failed to delete email. Please try again.');
       }
     }
+  };
+
+  const renderEmailBody = () => {
+    if (!fullEmail && !email) return null;
+    
+    const displayEmail = fullEmail || email;
+    
+    // Priority: HTML > Plain Text > Preview
+    // Gmail shows HTML when available, falls back to plain text
+    if (fullEmail?.bodyHtml) {
+      return (
+        <div 
+          className="email-content prose prose-blue max-w-none"
+          dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml }}
+        />
+      );
+    } else if (fullEmail?.bodyText) {
+      return (
+        <div className="email-content">
+          <pre className="whitespace-pre-wrap font-sans text-gray-800 text-base leading-relaxed">
+            {fullEmail.bodyText}
+          </pre>
+        </div>
+      );
+    } else if (displayEmail?.bodyPreview) {
+      return (
+        <div className="email-content">
+          <p className="text-gray-700 text-base leading-relaxed">
+            {displayEmail.bodyPreview}
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p>No content available</p>
+      </div>
+    );
   };
 
   const formatDate = (dateString) => {
@@ -146,48 +184,11 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         )}
       </div>
 
-      {/* View Toggle */}
-      {fullEmail && fullEmail.bodyHtml && fullEmail.bodyText && (
-        <div className="border-b px-6 py-2 flex gap-2">
-          <button
-            onClick={() => setShowHtml(true)}
-            className={`px-3 py-1 rounded text-sm ${
-              showHtml ? 'text-blue-100' : 'text-white'
-            }`}
-          >
-            HTML View
-          </button>
-          <button
-            onClick={() => setShowHtml(false)}
-            className={`px-3 py-1 rounded text-sm ${
-              !showHtml ? 'text-blue-100' : 'text-white'
-            }`}
-          >
-            Plain Text
-          </button>
-        </div>
-      )}
-
       {/* Email Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        {fullEmail ? (
-          <div className="prose max-w-none">
-            {showHtml && fullEmail.bodyHtml ? (
-              <div 
-                className="email-content"
-                dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml }}
-              />
-            ) : (
-              <pre className="whitespace-pre-wrap font-sans text-gray-700">
-                {fullEmail.bodyText || fullEmail.bodyPreview}
-              </pre>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-700 whitespace-pre-wrap">
-            {displayEmail.bodyPreview}
-          </p>
-        )}
+      <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+        <div className="max-w-4xl mx-auto">
+          {renderEmailBody()}
+        </div>
       </div>
     </div>
   );
