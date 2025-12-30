@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Auth/Login';
-import EmailList from './components/Email/EmailList';
-import EmailDetail from './components/Email/EmailDetail';
+import EmailList from './components/email/EmailList';
+import EmailDetail from './components/email/EmailDetail';
 import './App.css';
 
 function AppContent() {
@@ -62,7 +62,7 @@ function AppContent() {
                 </div>
                 <button
                   onClick={logout}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -78,7 +78,7 @@ function AppContent() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Email List - Left Side */}
-        <div className={`${selectedEmail ? 'hidden lg:block' : 'block'} w-full lg:w-1/2 xl:w-2/5 border-r bg-white`}>
+        <div className={`${selectedEmail ? 'hidden lg:block' : 'block'} w-full lg:w-1/3 border-r bg-white`}>
           <EmailList 
             key={refreshKey}
             onSelectEmail={setSelectedEmail} 
@@ -86,7 +86,7 @@ function AppContent() {
         </div>
 
         {/* Email Detail - Right Side */}
-        <div className={`${selectedEmail ? 'block' : 'hidden lg:block'} w-full lg:w-1/2 xl:w-3/5`}>
+        <div className={`${selectedEmail ? 'block' : 'hidden lg:block'} w-full lg:w-2/3`}>
           <EmailDetail
             email={selectedEmail}
             onClose={() => setSelectedEmail(null)}

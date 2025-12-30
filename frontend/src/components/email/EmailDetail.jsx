@@ -30,6 +30,19 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this email?')) {
+      try {
+        await emailAPI.deleteEmail(email.id);
+        if (onEmailUpdate) onEmailUpdate();
+        onClose(); // Close detail view after deletion
+      } catch (err) {
+        console.error('Failed to delete email:', err);
+        alert('Failed to delete email. Please try again.');
+      }
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -73,26 +86,17 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 text-white lg:hidden"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span>Back</span>
+            <span className="text-sm font-medium">Back</span>
           </button>
+
           
           <div className="flex gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Reply">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-              </svg>
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Forward">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Delete">
+            <button onClick={handleDelete} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Delete">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
@@ -100,7 +104,7 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           </div>
         </div>
         
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{displayEmail.subject}</h1>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{displayEmail.subject}</h2>
         
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
@@ -148,7 +152,7 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           <button
             onClick={() => setShowHtml(true)}
             className={`px-3 py-1 rounded text-sm ${
-              showHtml ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+              showHtml ? 'text-blue-100' : 'text-white'
             }`}
           >
             HTML View
@@ -156,7 +160,7 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           <button
             onClick={() => setShowHtml(false)}
             className={`px-3 py-1 rounded text-sm ${
-              !showHtml ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+              !showHtml ? 'text-blue-100' : 'text-white'
             }`}
           >
             Plain Text
