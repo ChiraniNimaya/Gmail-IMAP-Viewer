@@ -91,7 +91,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const handleClearSearch = () => {
     setSearchMode(false);
     setSearchParams(null);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination(prev => ({ ...prev, page: 1 })); 
     fetchEmails();
   };
 
@@ -311,7 +311,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
                         toggleEmailSelection(email.id);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="mt-1 h-4 w-4 accent-blue-600 border-gray-300 rounded cursor-pointer"
+                      className="mt-1 h-4 w-4 border-gray-300 rounded cursor-pointer"
                     />
 
                     {/* Email Content */}
