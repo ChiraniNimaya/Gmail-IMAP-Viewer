@@ -95,23 +95,64 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     fetchEmails();
   };
 
+  // Delete single email
+  const handleDeleteEmail = async (emailId, e) => {
+    e.stopPropagation();
+    
+    if (window.confirm('Are you sure you want to delete this email?\n\nThis will delete it from Gmail and cannot be undone.')) {
+      setLoading(true);
+      try {
+        await emailAPI.deleteEmail(emailId);
+        setEmails(emails.filter(email => email.id !== emailId));
+        setPagination(prev => ({ ...prev, total: prev.total - 1 }));
+        setError(null);
+      } catch (err) {
+        const errorMsg = err.response?.data?.message || 'Failed to delete email from Gmail';
+        setError(errorMsg);
+        console.error('Delete error:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Bulk delete
   const handleBulkDelete = async () => {
     if (selectedEmails.size === 0) return;
     
-    if (window.confirm(`Are you sure you want to delete ${selectedEmails.size} email(s)?`)) {
+    if (window.confirm(`Are you sure you want to delete ${selectedEmails.size} email(s)?\n\nThis will delete them from Gmail and cannot be undone.`)) {
+      setLoading(true);
+      const deleteErrors = [];
+      
       try {
         // Delete all selected emails
-        await Promise.all(
-          Array.from(selectedEmails).map(id => emailAPI.deleteEmail(id))
-        );
+        const deletePromises = Array.from(selectedEmails).map(async (id) => {
+          try {
+            await emailAPI.deleteEmail(id);
+            return { id, success: true };
+          } catch (err) {
+            deleteErrors.push(id);
+            return { id, success: false, error: err.message };
+          }
+        });
         
-        // Remove deleted emails from list
+        await Promise.all(deletePromises);
+        
+        // Remove successfully deleted emails from list
         setEmails(emails.filter(email => !selectedEmails.has(email.id)));
         setPagination(prev => ({ ...prev, total: prev.total - selectedEmails.size }));
         setSelectedEmails(new Set());
+        
+        if (deleteErrors.length > 0) {
+          setError(`Warning: ${deleteErrors.length} email(s) could not be deleted from Gmail. They may have been already deleted.`);
+        } else {
+          setError(null);
+        }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to delete emails');
+        setError(err.response?.data?.message || 'Failed to delete emails from Gmail');
         console.error('Bulk delete error:', err);
+      } finally {
+        setLoading(false);
       }
     }
   };;

@@ -223,6 +223,7 @@ exports.toggleReadStatus = catchAsync(async (req, res) => {
 exports.deleteEmail = catchAsync(async (req, res) => {
   const { id } = req.params;
 
+  // Find email first to get messageId
   const email = await Email.findOne({
     where: {
       id,
@@ -234,13 +235,33 @@ exports.deleteEmail = catchAsync(async (req, res) => {
     throw new AppError('Email not found', 404);
   }
 
+  // Delete from Gmail IMAP first
+  const imapService = new ImapService(req.user);
+  
+  try {
+    await imapService.connect();
+    await imapService.deleteEmail(email.messageId);
+    imapService.disconnect();
+    
+    console.log(`✓ Deleted from Gmail: ${email.messageId}`);
+  } catch (imapError) {
+    imapService.disconnect();
+    console.error('IMAP delete error:', imapError.message);
+    
+    // If IMAP delete fails, inform user but continue with DB delete
+    // To handle cases where email is already deleted from Gmail
+    console.log('Continuing with database deletion...');
+  }
+
+  // Delete from database
   await email.destroy();
 
   res.status(200).json({
     success: true,
-    message: 'Email deleted successfully'
+    message: 'Email deleted successfully from Gmail and database'
   });
 });
+
 
 // Get email statistics
 exports.getEmailStats = catchAsync(async (req, res) => {

@@ -30,17 +30,21 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this email?')) {
+    if (window.confirm('Are you sure you want to delete this email?\n\nThis will delete it from Gmail and cannot be undone.')) {
+      setLoading(true);
       try {
         await emailAPI.deleteEmail(email.id);
         if (onEmailUpdate) onEmailUpdate();
-        onClose(); // Close detail view after deletion
+        onClose();
       } catch (err) {
         console.error('Failed to delete email:', err);
-        alert('Failed to delete email. Please try again.');
+        alert('Failed to delete email from Gmail. It may have already been deleted.\n\nError: ' + (err.response?.data?.message || err.message));
+      } finally {
+        setLoading(false);
       }
     }
   };
+
 
   const renderEmailBody = () => {
     if (!fullEmail && !email) return null;

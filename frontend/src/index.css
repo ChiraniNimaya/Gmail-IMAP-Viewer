@@ -60,7 +60,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* Email content styles - Gmail-like rendering */
+/* Email content styles */
 .email-content {
   max-width: 100%;
   overflow-x: auto;

@@ -43,12 +43,12 @@ class ImapService {
       });
 
       this.imap.once('ready', () => {
-        console.log('✓ IMAP connection ready');
+        console.log('IMAP connection ready');
         resolve();
       });
 
       this.imap.once('error', (err) => {
-        console.error('✗ IMAP connection error:', err);
+        console.error('IMAP connection error:', err);
         reject(new Error(`IMAP connection failed: ${err.message}`));
       });
 
@@ -342,6 +342,86 @@ class ImapService {
         });
       });
     });
+  }
+
+  async deleteEmail(uid) {
+    return new Promise((resolve, reject) => {
+      this.imap.openBox('INBOX', false, (err) => {
+        if (err) return reject(err);
+
+        // Mark message as deleted using UID
+        this.imap.addFlags(uid, '\\Deleted', { uid: true }, (err) => {
+          if (err) return reject(err);
+
+          // Permanently remove deleted messages
+          this.imap.expunge((err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      });
+    });
+  }
+
+  // Delete single email from Gmail IMAP
+  async deleteEmail(messageId) {
+    return new Promise((resolve, reject) => {
+      this.imap.openBox('INBOX', false, (err, box) => {
+        if (err) {
+          reject(new Error(`Failed to open mailbox: ${err.message}`));
+          return;
+        }
+
+        // Search for the email by message ID
+        this.imap.search([['HEADER', 'MESSAGE-ID', messageId]], (err, results) => {
+          if (err) {
+            reject(new Error(`Search failed: ${err.message}`));
+            return;
+          }
+
+          if (!results || results.length === 0) {
+            reject(new Error('Email not found on server'));
+            return;
+          }
+
+          // Mark email as deleted (add \Deleted flag)
+          this.imap.addFlags(results, '\\Deleted', (err) => {
+            if (err) {
+              reject(new Error(`Failed to mark email as deleted: ${err.message}`));
+              return;
+            }
+
+            // Expunge (permanently remove) deleted emails
+            this.imap.expunge((err) => {
+              if (err) {
+                reject(new Error(`Failed to expunge: ${err.message}`));
+                return;
+              }
+
+              console.log(`✓ Email deleted from Gmail: ${messageId}`);
+              resolve(true);
+            });
+          });
+        });
+      });
+    });
+  }
+
+  // Delete multiple emails from Gmail IMAP
+  async deleteEmails(messageIds) {
+    const results = [];
+    
+    for (const messageId of messageIds) {
+      try {
+        await this.deleteEmail(messageId);
+        results.push({ messageId, success: true });
+      } catch (error) {
+        console.error(`Failed to delete ${messageId}:`, error.message);
+        results.push({ messageId, success: false, error: error.message });
+      }
+    }
+    
+    return results;
   }
 
   // Close connection
