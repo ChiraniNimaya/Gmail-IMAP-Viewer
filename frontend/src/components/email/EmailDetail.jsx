@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { emailAPI } from '../../services/api';
+import DOMPurify from 'dompurify';
 
 export default function EmailDetail({ email, onClose, onEmailUpdate }) {
   const [fullEmail, setFullEmail] = useState(null);
@@ -49,19 +50,58 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
   // Email rendering 
   const renderEmailBody = () => {
     if (!fullEmail && !email) return null;
-    
+
     const displayEmail = fullEmail || email;
-    
+
     // Priority: HTML > Plain Text > Preview
-    // Gmail shows HTML when available, falls back to plain text
     if (fullEmail?.bodyHtml) {
+      const sanitizedHTML = DOMPurify.sanitize(fullEmail.bodyHtml, {
+        ALLOWED_TAGS: [
+          'div',
+          'p',
+          'span',
+          'br',
+          'strong',
+          'em',
+          'b',
+          'i',
+          'u',
+          'a',
+          'ul',
+          'ol',
+          'li',
+          'table',
+          'thead',
+          'tbody',
+          'tr',
+          'td',
+          'th',
+          'blockquote',
+          'pre',
+          'code'
+        ],
+        ALLOWED_ATTR: [
+          'class',
+          'dir',
+          'href',
+          'target',
+          'rel',
+          'style',
+          'colspan',
+          'rowspan'
+        ],
+        KEEP_CONTENT: true
+      });
+
       return (
-        <div 
+        <div
           className="email-content prose prose-blue max-w-none"
-          dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml }}
+          dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
         />
       );
-    } else if (fullEmail?.bodyText) {
+    }
+
+    if (fullEmail?.bodyText) {
       return (
         <div className="email-content">
           <pre className="whitespace-pre-wrap font-sans text-gray-800 text-base leading-relaxed">
@@ -69,7 +109,9 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           </pre>
         </div>
       );
-    } else if (displayEmail?.bodyPreview) {
+    }
+
+    if (displayEmail?.bodyPreview) {
       return (
         <div className="email-content">
           <p className="text-gray-700 text-base leading-relaxed">
@@ -78,7 +120,7 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         </div>
       );
     }
-    
+
     return (
       <div className="text-center py-8 text-gray-500">
         <p>No content available</p>
