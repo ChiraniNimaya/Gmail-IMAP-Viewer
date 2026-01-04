@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 
-export default function Login({ onLogin, isAuthenticated }) {
+export default function Login() {
   useEffect(() => {
-    // Check for token in URL params
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const error = params.get('error');
 
     if (token) {
       localStorage.setItem('token', token);
-      window.location.href = '/';
+      window.location.replace('/');
+      return;
     }
 
     if (error) {
@@ -22,10 +22,6 @@ export default function Login({ onLogin, isAuthenticated }) {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     window.location.href = `${API_URL}/auth/google`;
   };
-
-  if (isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">

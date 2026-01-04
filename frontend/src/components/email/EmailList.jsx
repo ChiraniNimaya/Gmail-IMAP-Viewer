@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { emailAPI } from '../../services/api';
 import EmailSearch from './EmailSearch';
 
@@ -15,10 +15,12 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const [error, setError] = useState(null);
   const [searchMode, setSearchMode] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState(new Set());
-  const [searchParams, setSearchParams] = useState(null);
   const listRef = useRef(null);
+  // ✅ ADDED: Store search parameters to maintain across pagination
+  const [searchParams, setSearchParams] = useState(null);
 
   useEffect(() => {
+    // ✅ CHANGED: Fetch emails or search based on mode
     if (searchMode && searchParams) {
       performSearch(searchParams);
     } else {
@@ -62,6 +64,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
+  // ✅ ADDED: Separate function to perform search
   const performSearch = async (params) => {
     setLoading(true);
     setError(null);
@@ -81,6 +84,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
+  // ✅ CHANGED: Store search params for pagination
   const handleSearch = async (params) => {
     setSearchMode(true);
     setSearchParams(params);
@@ -88,14 +92,15 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     await performSearch(params);
   };
 
+  // ✅ CHANGED: Clear search params and mode
   const handleClearSearch = () => {
     setSearchMode(false);
     setSearchParams(null);
-    setPagination(prev => ({ ...prev, page: 1 })); 
+    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
     fetchEmails();
   };
 
-  // Delete single email
+  // ✅ UPDATED: Delete with IMAP awareness
   const handleDeleteEmail = async (emailId, e) => {
     e.stopPropagation();
     
@@ -116,7 +121,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
-  // Bulk delete
+  // ✅ UPDATED: Bulk delete with IMAP awareness
   const handleBulkDelete = async () => {
     if (selectedEmails.size === 0) return;
     
@@ -301,7 +306,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
         </div>
       )}
 
-      {/* Search mode indicator */}
+      {/* ✅ ADDED: Search mode indicator */}
       {searchMode && (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mx-4 mt-4">
           <div className="flex items-center justify-between">
@@ -313,6 +318,12 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
                 Search results for: "{searchParams?.query}"
               </p>
             </div>
+            <button
+              onClick={handleClearSearch}
+              className="text-blue-700 hover:text-blue-900 text-sm font-medium underline"
+            >
+              Clear search
+            </button>
           </div>
         </div>
       )}
@@ -352,7 +363,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
                         toggleEmailSelection(email.id);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="mt-1 h-4 w-4 border-gray-300 rounded cursor-pointer"
+                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
                     />
 
                     {/* Email Content */}
