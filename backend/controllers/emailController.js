@@ -1,9 +1,23 @@
 const ImapService = require('../services/imapService');
 const Email = require('../models/Email');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
-// Fetch and sync emails from Gmail
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+const parseNumber = (value, fallback) => {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? fallback : n;
+};
+
+const SORT_WHITELIST = ['receivedDate', 'subject', 'fromAddress', 'isRead'];
+const ORDER_WHITELIST = ['ASC', 'DESC'];
+
+/* -------------------------------------------------------------------------- */
+/* Sync Emails                                                                */
+/* -------------------------------------------------------------------------- */
 exports.syncEmails = catchAsync(async (req, res) => {
   const { mailbox = 'INBOX', limit = 50, offset = 0 } = req.query;
 
@@ -20,7 +34,7 @@ exports.syncEmails = catchAsync(async (req, res) => {
 
     // Store emails in database
     const savedEmails = [];
-    for (const emailData of emails) {
+    for (const emailData of emails) { //TODO: Improve performance with bulkCreate or batching with transactions
       const [email, created] = await Email.findOrCreate({
         where: {
           userId: req.user.id,
@@ -44,8 +58,6 @@ exports.syncEmails = catchAsync(async (req, res) => {
     req.user.lastSync = new Date();
     await req.user.save();
 
-    imapService.disconnect();
-
     res.status(200).json({
       success: true,
       data: {
@@ -56,36 +68,41 @@ exports.syncEmails = catchAsync(async (req, res) => {
       message: 'Emails synced successfully'
     });
   } catch (error) {
-    imapService.disconnect();
     throw new AppError(`Failed to sync emails: ${error.message}`, 500);
+  } finally {
+    imapService.disconnect?.();
   }
 });
 
-// Get emails from database
+/* -------------------------------------------------------------------------- */
+/* Get Emails                                                                 */
+/* -------------------------------------------------------------------------- */
 exports.getEmails = catchAsync(async (req, res) => {
-  const {
-    page = 1,
-    limit = 20,
-    sortBy = 'receivedDate',
-    order = 'DESC',
-    unreadOnly = false
-  } = req.query;
+  const page = parseNumber(req.query.page, 1);
+  const limit = parseNumber(req.query.limit, 20);
+  const offset = (page - 1) * limit;
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const sortBy = SORT_WHITELIST.includes(req.query.sortBy)
+    ? req.query.sortBy
+    : 'receivedDate';
+
+  const order = ORDER_WHITELIST.includes(
+    (req.query.order || '').toUpperCase()
+  )
+    ? req.query.order.toUpperCase()
+    : 'DESC';
 
   const where = { userId: req.user.id };
-  if (unreadOnly === 'true') {
+  if (req.query.unreadOnly === 'true') {
     where.isRead = false;
   }
 
   const { count, rows: emails } = await Email.findAndCountAll({
     where,
-    limit: parseInt(limit),
+    limit,
     offset,
-    order: [[sortBy, order.toUpperCase()]],
-    attributes: {
-      exclude: ['bodyHtml', 'bodyText'] // Exclude large fields for list view
-    }
+    order: [[sortBy, order]],
+    attributes: { exclude: ['bodyHtml', 'bodyText'] }
   });
 
   res.status(200).json({
@@ -94,15 +111,17 @@ exports.getEmails = catchAsync(async (req, res) => {
       emails,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
       }
     }
   });
 });
 
-// Get single email by ID
+/* -------------------------------------------------------------------------- */
+/* Get Email By ID                                                            */
+/* -------------------------------------------------------------------------- */
 exports.getEmailById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
@@ -125,56 +144,56 @@ exports.getEmailById = catchAsync(async (req, res) => {
   });
 });
 
-// Search emails
+/* -------------------------------------------------------------------------- */
+/* Search Emails                                                              */
+/* -------------------------------------------------------------------------- */
 exports.searchEmails = catchAsync(async (req, res) => {
-  const {
-    query,
-    page = 1,
-    limit = 20,
-    searchIn = 'all' // all, subject, from, body
-  } = req.query;
+  const { query, searchIn = 'all' } = req.query;
 
   if (!query) {
     throw new AppError('Search query is required', 400);
   }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  const searchTerm = `%${query}%`;
+  const page = parseNumber(req.query.page, 1);
+  const limit = parseNumber(req.query.limit, 20);
+  const offset = (page - 1) * limit;
+  const term = `%${query}%`;
 
-  let where = { userId: req.user.id };
+  const where = { userId: req.user.id };
 
   // Build search conditions based on searchIn parameter
-  if (searchIn === 'subject') {
-    where.subject = { [Op.like]: searchTerm };
-  } else if (searchIn === 'from') {
-    where[Op.or] = [
-      { fromAddress: { [Op.like]: searchTerm } },
-      { fromName: { [Op.like]: searchTerm } }
-    ];
-  } else if (searchIn === 'body') {
-    where[Op.or] = [
-      { bodyText: { [Op.like]: searchTerm } },
-      { bodyPreview: { [Op.like]: searchTerm } }
-    ];
-  } else {
-    // Search in all fields
-    where[Op.or] = [
-      { subject: { [Op.like]: searchTerm } },
-      { fromAddress: { [Op.like]: searchTerm } },
-      { fromName: { [Op.like]: searchTerm } },
-      { bodyPreview: { [Op.like]: searchTerm } },
-      { toAddress: { [Op.like]: searchTerm } }
-    ];
+  switch (searchIn) {
+    case 'subject':
+      where.subject = { [Op.like]: term };
+      break;
+    case 'from':
+      where[Op.or] = [
+        { fromAddress: { [Op.like]: term } },
+        { fromName: { [Op.like]: term } }
+      ];
+      break;
+    case 'body':
+      where[Op.or] = [
+        { bodyText: { [Op.like]: term } },
+        { bodyPreview: { [Op.like]: term } }
+      ];
+      break;
+    default:
+      where[Op.or] = [
+        { subject: { [Op.like]: term } },
+        { fromAddress: { [Op.like]: term } },
+        { fromName: { [Op.like]: term } },
+        { bodyPreview: { [Op.like]: term } },
+        { toAddress: { [Op.like]: term } }
+      ];
   }
 
   const { count, rows: emails } = await Email.findAndCountAll({
     where,
-    limit: parseInt(limit),
+    limit,
     offset,
     order: [['receivedDate', 'DESC']],
-    attributes: {
-      exclude: ['bodyHtml', 'bodyText']
-    }
+    attributes: { exclude: ['bodyHtml', 'bodyText'] }
   });
 
   res.status(200).json({
@@ -183,15 +202,18 @@ exports.searchEmails = catchAsync(async (req, res) => {
       emails,
       pagination: {
         total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
+        page,
+        limit,
+        totalPages: Math.ceil(count / limit)
       }
     }
   });
 });
 
-// Mark email as read/unread
+
+/* -------------------------------------------------------------------------- */
+/* Toggle Read Status                                                         */
+/* -------------------------------------------------------------------------- */
 exports.toggleReadStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { isRead } = req.body;
@@ -219,46 +241,39 @@ exports.toggleReadStatus = catchAsync(async (req, res) => {
   });
 });
 
-// Delete email
+/* -------------------------------------------------------------------------- */
+/* Delete Email                                                               */
+/* -------------------------------------------------------------------------- */
 exports.deleteEmail = catchAsync(async (req, res) => {
-  const { id } = req.params;
-
-  // Find email first to get messageId
   const email = await Email.findOne({
-    where: {
-      id,
-      userId: req.user.id
-    }
+    where: { id: req.params.id, userId: req.user.id }
   });
 
   if (!email) {
     throw new AppError('Email not found', 404);
   }
 
-  // Delete from Gmail IMAP first
   const imapService = new ImapService(req.user);
-  
+  let deletedFromGmail = false;
+
   try {
     await imapService.connect();
     await imapService.deleteEmail(email.messageId);
-    imapService.disconnect();
-    
-    console.log(`✓ Deleted from Gmail: ${email.messageId}`);
-  } catch (imapError) {
-    imapService.disconnect();
-    console.error('IMAP delete error:', imapError.message);
-    
-    // If IMAP delete fails, inform user but continue with DB delete
-    // To handle cases where email is already deleted from Gmail
-    console.log('Continuing with database deletion...');
+    deletedFromGmail = true;
+  } catch (err) {
+    console.warn('IMAP delete failed:', err.message);
+  } finally {
+    imapService.disconnect?.();
   }
 
-  // Delete from database
   await email.destroy();
 
   res.status(200).json({
     success: true,
-    message: 'Email deleted successfully from Gmail and database'
+    data: { deletedFromGmail },
+    message: deletedFromGmail
+      ? 'Email deleted from Gmail and database'
+      : 'Email deleted from database (already removed from Gmail)'
   });
 });
 

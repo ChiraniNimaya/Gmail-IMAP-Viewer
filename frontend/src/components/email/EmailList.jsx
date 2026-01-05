@@ -16,11 +16,11 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const [searchMode, setSearchMode] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState(new Set());
   const listRef = useRef(null);
-  // ✅ ADDED: Store search parameters to maintain across pagination
+  // Store search parameters to maintain across pagination
   const [searchParams, setSearchParams] = useState(null);
 
   useEffect(() => {
-    // ✅ CHANGED: Fetch emails or search based on mode
+    // Fetch emails or search based on mode
     if (searchMode && searchParams) {
       performSearch(searchParams);
     } else {
@@ -64,7 +64,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
-  // ✅ ADDED: Separate function to perform search
+  // Separate function to perform search
   const performSearch = async (params) => {
     setLoading(true);
     setError(null);
@@ -84,7 +84,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
-  // ✅ CHANGED: Store search params for pagination
+  // Store search params for pagination
   const handleSearch = async (params) => {
     setSearchMode(true);
     setSearchParams(params);
@@ -92,7 +92,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     await performSearch(params);
   };
 
-  // ✅ CHANGED: Clear search params and mode
+  // Clear search params and mode
   const handleClearSearch = () => {
     setSearchMode(false);
     setSearchParams(null);
@@ -100,67 +100,74 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     fetchEmails();
   };
 
-  // ✅ UPDATED: Delete with IMAP awareness
-  const handleDeleteEmail = async (emailId, e) => {
-    e.stopPropagation();
-    
-    if (window.confirm('Are you sure you want to delete this email?\n\nThis will delete it from Gmail and cannot be undone.')) {
-      setLoading(true);
-      try {
-        await emailAPI.deleteEmail(emailId);
-        setEmails(emails.filter(email => email.id !== emailId));
-        setPagination(prev => ({ ...prev, total: prev.total - 1 }));
-        setError(null);
-      } catch (err) {
-        const errorMsg = err.response?.data?.message || 'Failed to delete email from Gmail';
-        setError(errorMsg);
-        console.error('Delete error:', err);
-      } finally {
-        setLoading(false);
+
+  // Bulk delete with IMAP awareness
+  const handleBulkDelete = async () => {
+    if (selectedEmails.size === 0) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedEmails.size} email(s)?\n\nThis will delete them from Gmail and cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setLoading(true);
+
+    const deletedFromGmail = [];
+    const deletedOnlyLocally = [];
+    const failedDeletes = [];
+
+    try {
+      const deletePromises = Array.from(selectedEmails).map(async (id) => {
+        try {
+          const response = await emailAPI.deleteEmail(id);
+
+          if (response?.data?.data?.deletedFromGmail) {
+            deletedFromGmail.push(id);
+          } else {
+            deletedOnlyLocally.push(id);
+          }
+
+          return { id, success: true };
+        } catch (err) {
+          failedDeletes.push(id);
+          return { id, success: false };
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      // Remove deleted emails from UI
+      setEmails(prev => prev.filter(email => !selectedEmails.has(email.id)));
+      setPagination(prev => ({
+        ...prev,
+        total: Math.max(prev.total - selectedEmails.size, 0)
+      }));
+      setSelectedEmails(new Set());
+
+      // Show a prompt to user summarizing what happened
+      let message = '';
+      if (deletedFromGmail.length > 0) {
+        message += `${deletedFromGmail.length} email(s) deleted from Gmail.\n`;
       }
+      if (deletedOnlyLocally.length > 0) {
+        message += `${deletedOnlyLocally.length} email(s) were already removed from Gmail but deleted locally.\n`;
+      }
+      if (failedDeletes.length > 0) {
+        message += `${failedDeletes.length} email(s) could not be deleted. Please try again.`;
+      }
+
+      if (message) {
+        alert(message); // <-- Prompt-style feedback
+      }
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert(err.response?.data?.message || 'Failed to delete emails');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ UPDATED: Bulk delete with IMAP awareness
-  const handleBulkDelete = async () => {
-    if (selectedEmails.size === 0) return;
-    
-    if (window.confirm(`Are you sure you want to delete ${selectedEmails.size} email(s)?\n\nThis will delete them from Gmail and cannot be undone.`)) {
-      setLoading(true);
-      const deleteErrors = [];
-      
-      try {
-        // Delete all selected emails
-        const deletePromises = Array.from(selectedEmails).map(async (id) => {
-          try {
-            await emailAPI.deleteEmail(id);
-            return { id, success: true };
-          } catch (err) {
-            deleteErrors.push(id);
-            return { id, success: false, error: err.message };
-          }
-        });
-        
-        await Promise.all(deletePromises);
-        
-        // Remove successfully deleted emails from list
-        setEmails(emails.filter(email => !selectedEmails.has(email.id)));
-        setPagination(prev => ({ ...prev, total: prev.total - selectedEmails.size }));
-        setSelectedEmails(new Set());
-        
-        if (deleteErrors.length > 0) {
-          setError(`Warning: ${deleteErrors.length} email(s) could not be deleted from Gmail. They may have been already deleted.`);
-        } else {
-          setError(null);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to delete emails from Gmail');
-        console.error('Bulk delete error:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };;
 
   const toggleEmailSelection = (emailId) => {
     const newSelected = new Set(selectedEmails);
@@ -306,7 +313,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
         </div>
       )}
 
-      {/* ✅ ADDED: Search mode indicator */}
+      {/* Search mode indicator */}
       {searchMode && (
         <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mx-4 mt-4">
           <div className="flex items-center justify-between">
