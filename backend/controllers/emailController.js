@@ -276,37 +276,3 @@ exports.deleteEmail = catchAsync(async (req, res) => {
       : 'Email deleted from database (already removed from Gmail)'
   });
 });
-
-
-// Get email statistics
-exports.getEmailStats = catchAsync(async (req, res) => {
-  const totalEmails = await Email.count({
-    where: { userId: req.user.id }
-  });
-
-  const unreadEmails = await Email.count({
-    where: {
-      userId: req.user.id,
-      isRead: false
-    }
-  });
-
-  const emailsWithAttachments = await Email.count({
-    where: {
-      userId: req.user.id,
-      hasAttachments: true
-    }
-  });
-
-  res.status(200).json({
-    success: true,
-    data: {
-      stats: {
-        total: totalEmails,
-        unread: unreadEmails,
-        withAttachments: emailsWithAttachments,
-        read: totalEmails - unreadEmails
-      }
-    }
-  });
-});

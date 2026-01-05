@@ -11,7 +11,6 @@ router.use(verifyToken);
 router.get('/sync', emailController.syncEmails);
 router.get('/', emailController.getEmails);
 router.get('/search', emailController.searchEmails);
-router.get('/stats', emailController.getEmailStats);
 router.get('/:id', emailController.getEmailById);
 router.patch('/:id/read', emailController.toggleReadStatus);
 router.delete('/:id', emailController.deleteEmail);

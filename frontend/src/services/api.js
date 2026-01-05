@@ -72,8 +72,6 @@ export const emailAPI = {
   deleteEmail: (id) => 
     api.delete(`/api/emails/${id}`),
   
-  getStats: () => 
-    api.get('/api/emails/stats')
 };
 
 export default api;
