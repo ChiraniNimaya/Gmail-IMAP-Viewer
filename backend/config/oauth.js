@@ -3,6 +3,8 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 require('dotenv').config();
 
+const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -44,7 +46,7 @@ passport.use(
           profilePicture: profile.photos[0]?.value || null,
           accessToken: accessToken,
           refreshToken: refreshToken,
-          tokenExpiry: new Date(Date.now() + 3600 * 1000), // 1 hour
+          tokenExpiry: new Date(Date.now() + TOKEN_EXPIRY_MS),
           lastSync: new Date()
         };
 
