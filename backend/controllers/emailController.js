@@ -1,5 +1,5 @@
 const ImapService = require('../services/imapService');
-const Email = require('../models/Email');
+const Email = require('../models/email');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { Op, Sequelize } = require('sequelize');
 
@@ -148,52 +148,33 @@ exports.getEmailById = catchAsync(async (req, res) => {
 /* Search Emails                                                              */
 /* -------------------------------------------------------------------------- */
 exports.searchEmails = catchAsync(async (req, res) => {
-  const { query, searchIn = 'all' } = req.query;
+  const {
+    query,
+    page = 1,
+    limit = 20
+  } = req.query;
 
   if (!query) {
     throw new AppError('Search query is required', 400);
   }
 
-  const page = parseNumber(req.query.page, 1);
-  const limit = parseNumber(req.query.limit, 20);
-  const offset = (page - 1) * limit;
-  const term = `%${query}%`;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const { Sequelize } = require('sequelize');
 
-  const where = { userId: req.user.id };
-
-  // Build search conditions based on searchIn parameter
-  switch (searchIn) {
-    case 'subject':
-      where.subject = { [Op.like]: term };
-      break;
-    case 'from':
-      where[Op.or] = [
-        { fromAddress: { [Op.like]: term } },
-        { fromName: { [Op.like]: term } }
-      ];
-      break;
-    case 'body':
-      where[Op.or] = [
-        { bodyText: { [Op.like]: term } },
-        { bodyPreview: { [Op.like]: term } }
-      ];
-      break;
-    default:
-      where[Op.or] = [
-        { subject: { [Op.like]: term } },
-        { fromAddress: { [Op.like]: term } },
-        { fromName: { [Op.like]: term } },
-        { bodyPreview: { [Op.like]: term } },
-        { toAddress: { [Op.like]: term } }
-      ];
-  }
-
+  // Use FULLTEXT search for better performance
   const { count, rows: emails } = await Email.findAndCountAll({
-    where,
-    limit,
+    where: {
+      userId: req.user.id,
+      [Sequelize.Op.and]: Sequelize.literal(
+        `MATCH(subject, body_preview) AGAINST('${query}' IN NATURAL LANGUAGE MODE)`
+      )
+    },
+    limit: parseInt(limit),
     offset,
     order: [['receivedDate', 'DESC']],
-    attributes: { exclude: ['bodyHtml', 'bodyText'] }
+    attributes: {
+      exclude: ['bodyHtml', 'bodyText']
+    }
   });
 
   res.status(200).json({
@@ -202,9 +183,9 @@ exports.searchEmails = catchAsync(async (req, res) => {
       emails,
       pagination: {
         total: count,
-        page,
-        limit,
-        totalPages: Math.ceil(count / limit)
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit))
       }
     }
   });
