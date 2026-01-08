@@ -1,16 +1,43 @@
-# React + Vite
+# Frontend Setup Guide
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This frontend is the user interface for the Gmail IMAP Viewer application.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* Node.js (LTS recommended)
+* npm
 
-## React Compiler
+## 1. Install Dependencies
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Install required Node.js packages:
 
-## Expanding the ESLint configuration
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 2. Configure Environment Variables
+
+Create a `.env` file in the frontend root directory using the example file provided:
+```bash
+cp .env.example .env
+```
+
+Update the values in `.env` as needed (API URLs, ports, etc.).
+
+## 3. Start the Frontend Application
+
+Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+Start the development server:
+```bash
+npm run dev
+```
+
+The frontend application should now be running and accessible in your browser 🚀
+
+## Notes
+* Ensure the backend server is running before using the frontend
+* Restart the dev server if you make changes to the `.env` file
