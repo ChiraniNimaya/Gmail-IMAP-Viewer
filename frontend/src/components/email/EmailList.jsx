@@ -7,19 +7,26 @@ import EmailItem from './EmailItem';
 import EmailPagination from './EmailPagination';
 import EmailStatusMessages from './EmailStatusMessages';
 import EmptyState from './EmptyState';
+import { useEmailData } from '../../hooks/useEmailData';  
 
 export default function EmailList({ onSelectEmail, selectedEmailId }) {
-  const [emails, setEmails] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0
-  });
-  const [error, setError] = useState(null);
-  const [searchMode, setSearchMode] = useState(false);
+  const listRef = useRef(null);
+
+  const {
+    emails,
+    setEmails,
+    loading,
+    syncing,
+    pagination,
+    setPagination,
+    error,
+    searchMode,
+    searchParams,
+    syncEmails,
+    handleSearch,
+    handleClearSearch,
+    handlePageChange
+  } = useEmailData();
 
   const {
           selectedEmails,
@@ -27,93 +34,9 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
           selectAll,
           handleBulkDelete
         } = useBulkOperations(emails, setEmails, setPagination);
-  const listRef = useRef(null);
 
-  const [searchParams, setSearchParams] = useState(null);
-
-  useEffect(() => {
-    // Fetch emails or search based on mode
-    if (searchMode && searchParams) {
-      performSearch(searchParams);
-    } else {
-      fetchEmails();
-    }
-  }, [pagination.page]);
-
-  const fetchEmails = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await emailAPI.getEmails({
-        page: pagination.page,
-        limit: pagination.limit
-      });
-      
-      setEmails(response.data.data.emails);
-      setPagination(response.data.data.pagination);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch emails');
-      console.error('Fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const syncEmails = async () => {
-    setSyncing(true);
-    setError(null);
-    
-    try {
-      await emailAPI.syncEmails({ limit: 50 });
-      await fetchEmails();
-      setError(null);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to sync emails');
-      console.error('Sync error:', err);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-
-  const performSearch = async (params) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await emailAPI.searchEmails({
-        ...params,
-        page: pagination.page,
-        limit: pagination.limit
-      });
-      setEmails(response.data.data.emails);
-      setPagination(response.data.data.pagination);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to search emails');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Store search params for pagination
-  const handleSearch = async (params) => {
-    setSearchMode(true);
-    setSearchParams(params);
-    setPagination(prev => ({ ...prev, page: 1 }));
-    await performSearch(params);
-  };
-
-  // Clear search params and mode
-  const handleClearSearch = () => {
-    setSearchMode(false);
-    setSearchParams(null);
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchEmails();
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
+  const onPageChange = (newPage) => {
+    handlePageChange(newPage);
     if (listRef.current) {
       listRef.current.scrollTop = 0;
     }
@@ -171,7 +94,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
         )}
       </div>
 
-      <EmailPagination pagination={pagination} onPageChange={handlePageChange} />
+      <EmailPagination pagination={pagination} onPageChange={onPageChange} />
 
     </div>
   );
