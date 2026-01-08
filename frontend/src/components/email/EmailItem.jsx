@@ -18,7 +18,6 @@ export default function EmailItem({
     >
       <div className="px-4 py-3">
         <div className="flex items-start gap-3">
-          {/* Checkbox */}
           <input
             type="checkbox"
             checked={isSelected}
@@ -30,7 +29,6 @@ export default function EmailItem({
             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
           />
 
-          {/* Email Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className={`text-sm truncate ${
@@ -53,7 +51,6 @@ export default function EmailItem({
               {email.bodyPreview}
             </p>
             
-            {/* Tags */}
             {email.hasAttachments && (
               <div className="flex items-center gap-2 mt-2">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700 font-medium">

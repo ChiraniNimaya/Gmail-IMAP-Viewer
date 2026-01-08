@@ -10,10 +10,10 @@ export default function AuthenticatedLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
+
       <header className="bg-white border-b shadow-sm z-10">
         <div className="px-6 py-4 flex items-center justify-between">
-          {/* App Branding */}
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <svg
@@ -39,7 +39,6 @@ export default function AuthenticatedLayout() {
             </div>
           </div>
 
-          {/* User Info */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               {user?.profilePicture ? (
@@ -69,9 +68,8 @@ export default function AuthenticatedLayout() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Email List */}
+
         <section
           className={`${
             selectedEmail ? 'hidden lg:block' : 'block'
@@ -83,7 +81,6 @@ export default function AuthenticatedLayout() {
           />
         </section>
 
-        {/* Email Detail */}
         <section
           className={`${
             selectedEmail ? 'block' : 'hidden lg:block'

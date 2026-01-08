@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -36,7 +36,6 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
 export const authAPI = {
   login: () => {
     window.location.href = `${API_URL}/auth/google`;
@@ -52,7 +51,6 @@ export const authAPI = {
     api.put('/auth/preferences', { preferences })
 };
 
-// Email API
 export const emailAPI = {
   syncEmails: (params = {}) => 
     api.get('/api/emails/sync', { params }),

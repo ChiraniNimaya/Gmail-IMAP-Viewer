@@ -64,7 +64,6 @@ export const useBulkOperations = (emails, setEmails, setPagination) => {
       }));
       setSelectedEmails(new Set());
 
-      // Show summary to user
       let message = '';
       if (deletedFromGmail.length > 0) {
         message += `${deletedFromGmail.length} email(s) deleted from Gmail.\n`;

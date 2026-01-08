@@ -27,7 +27,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          {/* Logo/Icon */}
+
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,7 +40,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Features */}
           <div className="space-y-3 py-4">
             <div className="flex items-center gap-3 text-sm text-gray-600">
               <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +61,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Login Button */}
           <button
             onClick={handleLogin}
             className="w-full bg-white border-2 border-gray-300 text-white font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center gap-3"
@@ -76,7 +74,6 @@ export default function Login() {
             <span>Sign in with Google</span>
           </button>
 
-          {/* Privacy Notice */}
           <p className="text-xs text-gray-500 text-center">
             We respect your privacy. Your email data is stored securely and never shared with third parties.
           </p>

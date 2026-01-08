@@ -17,7 +17,6 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
     try {
       const response = await emailAPI.getEmailById(email.id);
       setFullEmail(response.data.data.email);
-      // Mark as read if unread
       if (!response.data.data.email.isRead) {
         await emailAPI.toggleReadStatus(email.id, true);
         if (onEmailUpdate) onEmailUpdate();
@@ -30,13 +29,10 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
   };
 
 
-  // Email rendering 
   const renderEmailBody = () => {
     if (!fullEmail && !email) return null;
 
     const displayEmail = fullEmail;
-
-    // Priority: HTML > Plain Text > Preview
 
      if (fullEmail?.bodyHtml) {
       const sanitizedHTML = DOMPurify.sanitize(fullEmail.bodyHtml, {
@@ -141,10 +137,8 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Header Toolbar */}
       <div className="border-b px-4 lg:py-0 py-3 ">
         <div className="flex items-center justify-between">
-          {/* Back Button (Mobile) */}
           <button
             onClick={onClose}
             className="lg:hidden flex items-center gap-2 text-gray-600 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
@@ -159,17 +153,14 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         </div>
       </div>
 
-      {/* Email Header */}
       <div className="border-b px-6 py-5 bg-white">
         <h2 className="text-2xl  font-bold text-gray-900 mb-4">{displayEmail?.subject}</h2>
         
         <div className="flex items-start gap-4">
-          {/* Avatar */}
           <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-md">
             {displayEmail.fromName ? displayEmail.fromName[0].toUpperCase() : 'U'}
           </div>
           
-          {/* Sender Info */}
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div>
@@ -198,7 +189,6 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           </div>
         </div>
         
-        {/* Attachments Preview */}
         {displayEmail.hasAttachments && (
           <div className="mt-4 flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +201,6 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
         )}
       </div>
 
-      {/* Email Body */}
       <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
         <div className="max-w-4xl mx-auto">
           {renderEmailBody()}

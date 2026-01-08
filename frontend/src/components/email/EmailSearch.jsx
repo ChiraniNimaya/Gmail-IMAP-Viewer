@@ -19,7 +19,7 @@ export default function EmailSearch({ onSearch, onClear }) {
     <div className="bg-white border-b sticky top-0 z-10">
       <div className="px-4 py-3">
         <form onSubmit={handleSearch} className="flex items-center gap-2">
-          {/* Search Input */}
+
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +46,6 @@ export default function EmailSearch({ onSearch, onClear }) {
             )}
           </div>
 
-          {/* Search Button */}
           <button
             type="submit"
             disabled={!searchQuery.trim()}

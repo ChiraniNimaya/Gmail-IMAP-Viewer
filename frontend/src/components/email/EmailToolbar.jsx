@@ -11,7 +11,7 @@ export default function EmailToolbar({
   return (
     <div className="border-b px-4 py-3 flex items-center justify-between bg-gray-50">
       <div className="flex items-center gap-3">
-        {/* Select All Checkbox */}
+
         <input
           type="checkbox"
           checked={allSelected}
@@ -19,7 +19,6 @@ export default function EmailToolbar({
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
         />
         
-        {/* Sync Button - Hidden when emails are selected */}
         {selectedCount === 0 && (
           <button
             onClick={onSync}
@@ -45,7 +44,6 @@ export default function EmailToolbar({
               {selectedCount} selected
             </span>
             
-            {/* Bulk Delete Button */}
             <button
               onClick={onBulkDelete}
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
@@ -60,7 +58,6 @@ export default function EmailToolbar({
         )}
       </div>
 
-      {/* Pagination Info */}
       <div className="text-sm text-gray-600">
         {totalEmails > 0 && (
           <span>

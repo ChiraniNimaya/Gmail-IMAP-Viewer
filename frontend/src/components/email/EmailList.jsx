@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import { emailAPI } from '../../services/api';
+import { useRef } from 'react';
 import EmailSearch from './EmailSearch';
 import { useBulkOperations } from '../../hooks/useBulkOperations';
 import EmailToolbar from './EmailToolbar';
