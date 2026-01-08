@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { emailAPI } from '../../services/api';
 import EmailSearch from './EmailSearch';
+import { formatDate } from './emailListUtils';  
+import { useBulkOperations } from '../../hooks/useBulkOperations';
 
 export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const [emails, setEmails] = useState([]);
@@ -14,9 +16,15 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   });
   const [error, setError] = useState(null);
   const [searchMode, setSearchMode] = useState(false);
-  const [selectedEmails, setSelectedEmails] = useState(new Set());
+
+  const {
+          selectedEmails,
+          toggleEmailSelection,
+          selectAll,
+          handleBulkDelete
+        } = useBulkOperations(emails, setEmails, setPagination);
   const listRef = useRef(null);
-  // Store search parameters to maintain across pagination
+
   const [searchParams, setSearchParams] = useState(null);
 
   useEffect(() => {
@@ -98,122 +106,6 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     setSearchParams(null);
     setPagination(prev => ({ ...prev, page: 1 }));
     fetchEmails();
-  };
-
-
-  // Bulk delete with IMAP awareness
-  const handleBulkDelete = async () => {
-    if (selectedEmails.size === 0) return;
-
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${selectedEmails.size} email(s)?\n\nThis will delete them from Gmail and cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
-    setLoading(true);
-
-    const deletedFromGmail = [];
-    const deletedOnlyLocally = [];
-    const failedDeletes = [];
-
-    try {
-      const deletePromises = Array.from(selectedEmails).map(async (id) => {
-        try {
-          const response = await emailAPI.deleteEmail(id);
-
-          if (response?.data?.data?.deletedFromGmail) {
-            deletedFromGmail.push(id);
-          } else {
-            deletedOnlyLocally.push(id);
-          }
-
-          return { id, success: true };
-        } catch (err) {
-          failedDeletes.push(id);
-          console.error(`Failed to delete email ID ${id}:`, err);
-          return { id, success: false };
-        }
-      });
-
-      await Promise.all(deletePromises);
-
-      // Remove deleted emails from UI
-      setEmails(prev => prev.filter(email => !selectedEmails.has(email.id)));
-      setPagination(prev => ({
-        ...prev,
-        total: Math.max(prev.total - selectedEmails.size, 0)
-      }));
-      setSelectedEmails(new Set());
-
-      // Show a prompt to user summarizing what happened
-      let message = '';
-      if (deletedFromGmail.length > 0) {
-        message += `${deletedFromGmail.length} email(s) deleted from Gmail.\n`;
-      }
-      if (deletedOnlyLocally.length > 0) {
-        message += `${deletedOnlyLocally.length} email(s) were already removed from Gmail but deleted locally.\n`;
-      }
-      if (failedDeletes.length > 0) {
-        message += `${failedDeletes.length} email(s) could not be deleted. Please try again.`;
-      }
-
-      if (message) {
-        alert(message);
-      }
-    } catch (err) {
-      console.error('Bulk delete error:', err);
-      alert(err.response?.data?.message || 'Failed to delete emails');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const toggleEmailSelection = (emailId) => {
-    const newSelected = new Set(selectedEmails);
-    if (newSelected.has(emailId)) {
-      newSelected.delete(emailId);
-    } else {
-      newSelected.add(emailId);
-    }
-    setSelectedEmails(newSelected);
-  };
-
-  const selectAll = () => {
-    if (selectedEmails.size === emails.length) {
-      setSelectedEmails(new Set());
-    } else {
-      setSelectedEmails(new Set(emails.map(e => e.id)));
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } else if (days < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
-    } else if (date.getFullYear() === now.getFullYear()) {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
-    }
   };
 
   const handlePageChange = (newPage) => {
