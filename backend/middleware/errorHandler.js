@@ -10,7 +10,6 @@ class AppError extends Error {
   }
 }
 
-// Error handler middleware
 const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
@@ -21,7 +20,6 @@ const errorHandler = (err, req, res, next) => {
     let error = { ...err };
     error.message = err.message;
 
-    // Handle specific error types
     if (err.name === 'SequelizeValidationError') {
       error = handleValidationError(err);
     }
@@ -70,31 +68,28 @@ const sendErrorProd = (err, res) => {
   }
 };
 
-// Handle validation errors
+
 const handleValidationError = (err) => {
   const errors = err.errors.map(e => e.message);
   const message = `Invalid input data. ${errors.join('. ')}`;
   return new AppError(message, 400);
 };
 
-// Handle duplicate field errors
+
 const handleDuplicateFieldsError = (err) => {
   const field = Object.keys(err.fields)[0];
   const message = `Duplicate field value: ${field}. Please use another value.`;
   return new AppError(message, 400);
 };
 
-// Handle JWT errors
 const handleJWTError = () => {
   return new AppError('Invalid token. Please log in again.', 401);
 };
 
-// Handle JWT expired errors
 const handleJWTExpiredError = () => {
   return new AppError('Your token has expired. Please log in again.', 401);
 };
 
-// Catch async errors
 const catchAsync = (fn) => {
   return (req, res, next) => {
     fn(req, res, next).catch(next);

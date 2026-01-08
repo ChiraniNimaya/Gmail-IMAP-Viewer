@@ -1,5 +1,3 @@
-// utils/serverBanner.js
-
 const printServerBanner = ({ environment, port }) => {
   const env = environment || 'development';
   const portValue = port?.toString() || '5000';

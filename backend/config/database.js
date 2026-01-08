@@ -23,7 +23,6 @@ const sequelize = new Sequelize(
   }
 );
 
-// Test database connection
 const testConnection = async () => {
   try {
     await sequelize.authenticate();
@@ -34,7 +33,6 @@ const testConnection = async () => {
   }
 };
 
-// Sync database models
 const syncDatabase = async (force = false) => {
   try {
     await sequelize.sync({ force, alter: !force });

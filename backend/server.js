@@ -17,9 +17,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-/* =======================
-   Middleware
-======================= */
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -30,31 +27,22 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* =======================
-   Session Configuration
-======================= */
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, 
       httpOnly: true,
       secure: isProduction
     }
   })
 );
 
-/* =======================
-   Passport
-======================= */
 app.use(passport.initialize());
 app.use(passport.session());
 
-/* =======================
-   Routes
-======================= */
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -66,9 +54,6 @@ app.get('/', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/api/emails', emailRoutes);
 
-/* =======================
-   404 Handler
-======================= */
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -76,14 +61,8 @@ app.use('*', (req, res) => {
   });
 });
 
-/* =======================
-   Error Handler
-======================= */
 app.use(errorHandler);
 
-/* =======================
-   Server Bootstrap
-======================= */
 const startServer = async () => {
   try {
     await testConnection();
@@ -101,9 +80,6 @@ const startServer = async () => {
   }
 };
 
-/* =======================
-   Process-level Safety
-======================= */
 process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED REJECTION! Shutting down...');
   console.error(err.name, err.message);

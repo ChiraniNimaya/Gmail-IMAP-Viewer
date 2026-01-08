@@ -3,7 +3,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 require('dotenv').config();
 
-const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
+const TOKEN_EXPIRY_MS = 60 * 60 * 1000; 
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -34,7 +34,6 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Check if user exists
         let user = await User.findOne({
           where: { googleId: profile.id }
         });
@@ -51,10 +50,8 @@ passport.use(
         };
 
         if (user) {
-          // Update existing user
           await user.update(userData);
         } else {
-          // Create new user
           user = await User.create(userData);
         }
 

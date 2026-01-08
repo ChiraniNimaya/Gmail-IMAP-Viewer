@@ -70,7 +70,6 @@ const User = sequelize.define('User', {
   ]
 });
 
-// Instance methods
 User.prototype.updateTokens = async function(accessToken, refreshToken, expiresIn) {
   this.accessToken = accessToken;
   this.refreshToken = refreshToken;

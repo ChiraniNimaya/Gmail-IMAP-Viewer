@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Verify JWT token
 const verifyToken = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -45,7 +44,6 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Check if user is authenticated via session
 const isAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();

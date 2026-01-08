@@ -10,7 +10,7 @@ async function addSearchIndexes() {
 
   try {
     await sequelize.authenticate();
-    console.log('✓ Connected to database\n');
+    console.log('Connected to database\n');
 
     // Add FULLTEXT index on subject and body_preview for search
     console.log('Creating FULLTEXT index for search...');
@@ -19,14 +19,14 @@ async function addSearchIndexes() {
       ADD FULLTEXT INDEX idx_email_search (subject, body_preview)
     `);
     
-    console.log('✓ Search index created successfully!\n');
+    console.log('Search index created successfully!\n');
     console.log('Now searches in subject and body will be much faster.');
 
   } catch (error) {
     if (error.message.includes('Duplicate key name')) {
-      console.log('⚠ Search index already exists. Skipping...');
+      console.log('Search index already exists. Skipping...');
     } else {
-      console.error('✗ Error:', error.message);
+      console.error('Error:', error.message);
     }
   } finally {
     await sequelize.close();

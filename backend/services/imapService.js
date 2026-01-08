@@ -8,7 +8,6 @@ class ImapService {
     this.imap = null;
   }
 
-  // Generate XOAUTH2 token string
   generateXOAuth2Token(user, accessToken) {
     const authString = [
       `user=${user}`,
@@ -39,7 +38,7 @@ class ImapService {
         },
         authTimeout: 10000,
         connTimeout: 10000,
-        debug: console.log // Enable debug logging
+        debug: console.log 
       });
 
       this.imap.once('ready', () => {
@@ -64,7 +63,6 @@ class ImapService {
     });
   }
 
-  // Fetch emails from a mailbox
   async fetchEmails(mailbox = 'INBOX', limit = 50, offset = 0) {
     return new Promise((resolve, reject) => {
       this.imap.openBox(mailbox, true, (err, box) => {
@@ -114,7 +112,6 @@ class ImapService {
 
             stream.once('end', () => {
               if (info.which === '') {
-                // Full message body
                 emailData.fullBody = buffer;
               } else if (info.which.includes('HEADER')) {
                 emailData.headers = Imap.parseHeader(buffer);
@@ -151,7 +148,6 @@ class ImapService {
     });
   }
 
-  // Parse email data
   async parseEmails(rawEmails) {
     const parsed = [];
 
@@ -159,7 +155,6 @@ class ImapService {
       try {
         const headers = email.headers || {};
         
-        // Parse full body if available
         let bodyPreview = '';
         let bodyText = '';
         let bodyHtml = '';
@@ -176,14 +171,12 @@ class ImapService {
           }
         }
 
-        // Extract sender information
         const fromAddress = headers.from ? headers.from[0] : '';
         const fromMatch = fromAddress.match(/<(.+?)>/) || [null, fromAddress];
         const fromEmail = fromMatch[1] || fromAddress;
         const fromNameMatch = fromAddress.match(/^"?([^"<]+)"?\s*</);
         const fromName = fromNameMatch ? fromNameMatch[1].trim() : fromEmail;
 
-        // Get received date
         let receivedDate = new Date();
         if (headers.date && headers.date[0]) {
           try {
@@ -220,7 +213,6 @@ class ImapService {
     return parsed;
   }
 
-  // Check if email has attachments
   hasAttachments(struct) {
     if (!struct) return false;
     
@@ -237,7 +229,6 @@ class ImapService {
     return checkStruct(struct);
   }
 
-  // Count attachments
   countAttachments(struct) {
     if (!struct) return 0;
     
@@ -254,7 +245,6 @@ class ImapService {
     return count;
   }
 
-  // Search emails
   async searchEmails(criteria, limit = 50) {
     return new Promise((resolve, reject) => {
       this.imap.openBox('INBOX', true, (err, box) => {
@@ -344,26 +334,6 @@ class ImapService {
     });
   }
 
-  async deleteEmail(uid) {
-    return new Promise((resolve, reject) => {
-      this.imap.openBox('INBOX', false, (err) => {
-        if (err) return reject(err);
-
-        // Mark message as deleted using UID
-        this.imap.addFlags(uid, '\\Deleted', { uid: true }, (err) => {
-          if (err) return reject(err);
-
-          // Permanently remove deleted messages
-          this.imap.expunge((err) => {
-            if (err) return reject(err);
-            resolve();
-          });
-        });
-      });
-    });
-  }
-
-  // Delete single email from Gmail IMAP
   async deleteEmail(messageId) {
     return new Promise((resolve, reject) => {
       this.imap.openBox('INBOX', false, (err, box) => {
@@ -372,7 +342,6 @@ class ImapService {
           return;
         }
 
-        // Search for the email by message ID
         this.imap.search([['HEADER', 'MESSAGE-ID', messageId]], (err, results) => {
           if (err) {
             reject(new Error(`Search failed: ${err.message}`));
@@ -384,21 +353,20 @@ class ImapService {
             return;
           }
 
-          // Mark email as deleted (add \Deleted flag)
           this.imap.addFlags(results, '\\Deleted', (err) => {
             if (err) {
               reject(new Error(`Failed to mark email as deleted: ${err.message}`));
               return;
             }
 
-            // Expunge (permanently remove) deleted emails
+            // Permanently remove deleted emails
             this.imap.expunge((err) => {
               if (err) {
                 reject(new Error(`Failed to expunge: ${err.message}`));
                 return;
               }
 
-              console.log(`✓ Email deleted from Gmail: ${messageId}`);
+              console.log(`Email deleted from Gmail: ${messageId}`);
               resolve(true);
             });
           });
@@ -407,24 +375,6 @@ class ImapService {
     });
   }
 
-  // Delete multiple emails from Gmail IMAP
-  async deleteEmails(messageIds) {
-    const results = [];
-    
-    for (const messageId of messageIds) {
-      try {
-        await this.deleteEmail(messageId);
-        results.push({ messageId, success: true });
-      } catch (error) {
-        console.error(`Failed to delete ${messageId}:`, error.message);
-        results.push({ messageId, success: false, error: error.message });
-      }
-    }
-    
-    return results;
-  }
-
-  // Close connection
   disconnect() {
     if (this.imap) {
       try {
