@@ -3,10 +3,6 @@ const { catchAsync, AppError } = require('../middleware/errorHandler');
 
 const JWT_EXPIRES_IN = '7d';
 
-/* =======================
-   Helpers
-======================= */
-
 // Generate JWT token
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -32,7 +28,6 @@ const sanitizeUser = (user) => {
   };
 };
 
-// Basic preferences validation
 const validatePreferences = (preferences) => {
   if (typeof preferences !== 'object' || Array.isArray(preferences)) {
     throw new AppError('Preferences must be an object', 400);
@@ -54,11 +49,6 @@ const validatePreferences = (preferences) => {
   }
 };
 
-/* =======================
-   Controllers
-======================= */
-
-// Google OAuth callback handler
 exports.googleCallback = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError('Authentication failed', 401);
@@ -67,11 +57,10 @@ exports.googleCallback = catchAsync(async (req, res) => {
   const token = generateToken(req.user.id);
 
   res.redirect(
-    `${process.env.FRONTEND_URL}/auth/callback?token=${token}` //TODO: Do not pass token in URL query in production
+    `${process.env.FRONTEND_URL}/auth/callback?token=${token}` 
   );
 });
 
-// Get current user
 exports.getCurrentUser = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,
@@ -81,7 +70,6 @@ exports.getCurrentUser = catchAsync(async (req, res) => {
   });
 });
 
-// Logout
 exports.logout = catchAsync(async (req, res, next) => {
   req.logout((err) => {
     if (err) return next(new AppError('Error logging out', 500));
@@ -93,7 +81,6 @@ exports.logout = catchAsync(async (req, res, next) => {
   });
 });
 
-// Update user preferences
 exports.updatePreferences = catchAsync(async (req, res) => {
   const { preferences } = req.body;
 
@@ -119,7 +106,6 @@ exports.updatePreferences = catchAsync(async (req, res) => {
   });
 });
 
-// Check authentication status
 exports.checkAuth = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,

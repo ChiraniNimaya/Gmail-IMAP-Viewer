@@ -17,7 +17,6 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
     try {
       const response = await emailAPI.getEmailById(email.id);
       setFullEmail(response.data.data.email);
-      
       // Mark as read if unread
       if (!response.data.data.email.isRead) {
         await emailAPI.toggleReadStatus(email.id, true);
@@ -30,33 +29,23 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
     }
   };
 
-  // Delete with IMAP awareness
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this email?\n\nThis will delete it from Gmail and cannot be undone.')) {
-      setLoading(true);
-      try {
-        await emailAPI.deleteEmail(email.id);
-        if (onEmailUpdate) onEmailUpdate();
-        onClose();
-      } catch (err) {
-        console.error('Failed to delete email:', err);
-        alert('Failed to delete email from Gmail. It may have already been deleted.\n\nError: ' + (err.response?.data?.message || err.message));
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
 
   // Email rendering 
   const renderEmailBody = () => {
     if (!fullEmail && !email) return null;
 
-    const displayEmail = fullEmail || email;
+    const displayEmail = fullEmail;
 
     // Priority: HTML > Plain Text > Preview
-    if (fullEmail?.bodyHtml) {
+
+     if (fullEmail?.bodyHtml) {
       const sanitizedHTML = DOMPurify.sanitize(fullEmail.bodyHtml, {
         ALLOWED_TAGS: [
+          'html',
+          'head',
+          'body',
+          'style',
+          'img',
           'div',
           'p',
           'span',
@@ -80,41 +69,21 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
           'pre',
           'code'
         ],
-        ALLOWED_ATTR: [
-          'class',
-          'dir',
-          'href',
-          'target',
-          'rel',
-          'style',
-          'colspan',
-          'rowspan'
-        ],
         KEEP_CONTENT: true
       });
 
       return (
         <div
-          className="email-content prose prose-blue max-w-none"
+          className="text-gray-800 text-base leading-relaxed"
           dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
         />
       );
     }
 
-    if (fullEmail?.bodyText) {
-      return (
-        <div className="email-content">
-          <pre className="whitespace-pre-wrap font-sans text-gray-800 text-base leading-relaxed">
-            {fullEmail.bodyText}
-          </pre>
-        </div>
-      );
-    }
-
     if (displayEmail?.bodyPreview) {
       return (
-        <div className="email-content">
-          <p className="text-gray-700 text-base leading-relaxed">
+        <div>
+          <p className="text-gray-800 text-base leading-relaxed">
             {displayEmail.bodyPreview}
           </p>
         </div>
@@ -165,12 +134,15 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
     );
   }
 
-  const displayEmail = fullEmail || email;
+  const displayEmail = fullEmail;
+  if(!displayEmail) {
+    return null;
+  }
 
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header Toolbar */}
-      <div className="border-b px-4 py-3 bg-gray-50">
+      <div className="border-b px-4 lg:py-0 py-3 ">
         <div className="flex items-center justify-between">
           {/* Back Button (Mobile) */}
           <button
@@ -183,29 +155,17 @@ export default function EmailDetail({ email, onClose, onEmailUpdate }) {
             <span className="text-sm font-medium">Back</span>
           </button>
           
-          {/* Delete Button */}
-          <div className="flex items-center gap-1 ml-auto">
-            <button 
-              onClick={handleDelete}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium" 
-              title="Delete email"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span className="hidden sm:inline">Delete</span>
-            </button>
-          </div>
+        
         </div>
       </div>
 
       {/* Email Header */}
       <div className="border-b px-6 py-5 bg-white">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{displayEmail.subject}</h1>
+        <h2 className="text-2xl  font-bold text-gray-900 mb-4">{displayEmail?.subject}</h2>
         
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-md">
+          <div className="shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-md">
             {displayEmail.fromName ? displayEmail.fromName[0].toUpperCase() : 'U'}
           </div>
           

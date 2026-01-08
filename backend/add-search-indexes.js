@@ -1,5 +1,4 @@
 /**
- * Add FULLTEXT index for fast email search
  * Run: node add-search-indexes.js
  */
 

@@ -3,10 +3,6 @@ const Email = require('../models/email');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { Op, Sequelize } = require('sequelize');
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
 const parseNumber = (value, fallback) => {
   const n = parseInt(value, 10);
   return Number.isNaN(n) ? fallback : n;
@@ -15,9 +11,6 @@ const parseNumber = (value, fallback) => {
 const SORT_WHITELIST = ['receivedDate', 'subject', 'fromAddress', 'isRead'];
 const ORDER_WHITELIST = ['ASC', 'DESC'];
 
-/* -------------------------------------------------------------------------- */
-/* Sync Emails                                                                */
-/* -------------------------------------------------------------------------- */
 exports.syncEmails = catchAsync(async (req, res) => {
   const { mailbox = 'INBOX', limit = 50, offset = 0 } = req.query;
 
@@ -32,9 +25,8 @@ exports.syncEmails = catchAsync(async (req, res) => {
       parseInt(offset)
     );
 
-    // Store emails in database
     const savedEmails = [];
-    for (const emailData of emails) { //TODO: Improve performance with bulkCreate or batching with transactions
+    for (const emailData of emails) { 
       const [email, created] = await Email.findOrCreate({
         where: {
           userId: req.user.id,
@@ -47,14 +39,12 @@ exports.syncEmails = catchAsync(async (req, res) => {
       });
 
       if (!created) {
-        // Update existing email
         await email.update(emailData);
       }
 
       savedEmails.push(email);
     }
 
-    // Update last sync time
     req.user.lastSync = new Date();
     await req.user.save();
 
@@ -74,9 +64,6 @@ exports.syncEmails = catchAsync(async (req, res) => {
   }
 });
 
-/* -------------------------------------------------------------------------- */
-/* Get Emails                                                                 */
-/* -------------------------------------------------------------------------- */
 exports.getEmails = catchAsync(async (req, res) => {
   const page = parseNumber(req.query.page, 1);
   const limit = parseNumber(req.query.limit, 20);
@@ -119,9 +106,6 @@ exports.getEmails = catchAsync(async (req, res) => {
   });
 });
 
-/* -------------------------------------------------------------------------- */
-/* Get Email By ID                                                            */
-/* -------------------------------------------------------------------------- */
 exports.getEmailById = catchAsync(async (req, res) => {
   const { id } = req.params;
 
@@ -144,9 +128,7 @@ exports.getEmailById = catchAsync(async (req, res) => {
   });
 });
 
-/* -------------------------------------------------------------------------- */
-/* Search Emails                                                              */
-/* -------------------------------------------------------------------------- */
+
 exports.searchEmails = catchAsync(async (req, res) => {
   const {
     query,
@@ -161,7 +143,6 @@ exports.searchEmails = catchAsync(async (req, res) => {
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const { Sequelize } = require('sequelize');
 
-  // Use FULLTEXT search for better performance
   const { count, rows: emails } = await Email.findAndCountAll({
     where: {
       userId: req.user.id,
@@ -191,10 +172,6 @@ exports.searchEmails = catchAsync(async (req, res) => {
   });
 });
 
-
-/* -------------------------------------------------------------------------- */
-/* Toggle Read Status                                                         */
-/* -------------------------------------------------------------------------- */
 exports.toggleReadStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { isRead } = req.body;
@@ -222,9 +199,7 @@ exports.toggleReadStatus = catchAsync(async (req, res) => {
   });
 });
 
-/* -------------------------------------------------------------------------- */
-/* Delete Email                                                               */
-/* -------------------------------------------------------------------------- */
+
 exports.deleteEmail = catchAsync(async (req, res) => {
   const email = await Email.findOne({
     where: { id: req.params.id, userId: req.user.id }

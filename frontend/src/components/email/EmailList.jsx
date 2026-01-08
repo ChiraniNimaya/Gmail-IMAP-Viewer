@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { emailAPI } from '../../services/api';
 import EmailSearch from './EmailSearch';
 
@@ -64,7 +64,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
     }
   };
 
-  // Separate function to perform search
+
   const performSearch = async (params) => {
     setLoading(true);
     setError(null);
@@ -88,7 +88,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const handleSearch = async (params) => {
     setSearchMode(true);
     setSearchParams(params);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination(prev => ({ ...prev, page: 1 }));
     await performSearch(params);
   };
 
@@ -96,7 +96,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
   const handleClearSearch = () => {
     setSearchMode(false);
     setSearchParams(null);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1
+    setPagination(prev => ({ ...prev, page: 1 }));
     fetchEmails();
   };
 
@@ -131,6 +131,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
           return { id, success: true };
         } catch (err) {
           failedDeletes.push(id);
+          console.error(`Failed to delete email ID ${id}:`, err);
           return { id, success: false };
         }
       });
@@ -158,7 +159,7 @@ export default function EmailList({ onSelectEmail, selectedEmailId }) {
       }
 
       if (message) {
-        alert(message); // <-- Prompt-style feedback
+        alert(message);
       }
     } catch (err) {
       console.error('Bulk delete error:', err);
